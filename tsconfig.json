@@ -1,0 +1,70 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "declaration": true,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "strictPropertyInitialization": false,
+    "target": "es2017",
+    "sourceMap": true,
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "paths": {
+      "src/*": [
+        "./src/*"
+      ]
+    },
+    "incremental": true,
+    "skipLibCheck": true,
+    "strictNullChecks": true,
+    "noImplicitAny": true,
+    "strictBindCallApply": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "resolveJsonModule": true,
+    "allowJs": true,
+    "plugins": [
+      {
+        "transform": "typescript-transform-paths"
+      },
+      {
+        "transform": "@nestia/core/lib/transform",
+        /**
+         * Validate request body.
+         * 
+         *   - "assert": Use typia.assert() function
+         *   - "is": Use typia.is() function
+         *   - "validate": Use typia.validate() function
+         */
+        "validate": "assert",
+        /**
+         * Validate JSON typed response body.
+         * 
+         *   - null: Just use JSON.stringify() function, without boosting
+         *   - "stringify": Use typia.stringify() function, but dangerous
+         *   - "assert": Use typia.assertStringify() function
+         *   - "is": Use typia.isStringify() function
+         *   - "validate": Use typia.validateStringify() function
+         */
+        "stringify": "is"
+      },
+      {
+        "transform": "typia/lib/transform"
+      }
+    ],
+    "strict": true
+  },
+  "include": [
+    "test",
+    "src/**/*",
+    "src/@types/global.d.ts",
+    "nestia.config.ts",
+    "datasource.ts",
+    "typeorm-migration"
+  ],
+  "exclude": [
+    "./dist"
+  ]
+}

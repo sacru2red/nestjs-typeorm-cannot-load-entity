@@ -1,0 +1,100 @@
+diff --git a/node_modules/@nestia/sdk/lib/INestiaConfig.d.ts b/node_modules/@nestia/sdk/lib/INestiaConfig.d.ts
+index 4fd00fa..8aec177 100644
+--- a/node_modules/@nestia/sdk/lib/INestiaConfig.d.ts
++++ b/node_modules/@nestia/sdk/lib/INestiaConfig.d.ts
+@@ -96,17 +96,24 @@ export declare namespace INestiaConfig {
+         exclude?: string[];
+     }
+     /**
+-     * Building `swagger.json` is also possible.
++     * Building `swagger document` is also possible.
+      */
+     interface ISwaggerConfig {
+         /**
+-         * Output path of the `swagger.json`.
++         * Output path of the `swagger document`.
+          *
+-         * If you've configured only directory, the file name would be the `swagger.json`.
++         * If you've configured only directory, the file name would be the `swagger document`.
+          * Otherwise you've configured the full path with file name and extension, the
+-         * `swagger.json` file would be renamed to it.
++         * `swagger document` file would be renamed to it.
+          */
+         output: string;
++        /**
++         * Output `swagger document`'s default format is JSON
++         * 
++         * If you want to export YAML
++         * set this value true
++         */
++        yaml?: boolean;
+         /**
+          * Security schemes.
+          */
+diff --git a/node_modules/@nestia/sdk/lib/generates/SwaggerGenerator.js b/node_modules/@nestia/sdk/lib/generates/SwaggerGenerator.js
+index ba7775e..ed6382a 100644
+--- a/node_modules/@nestia/sdk/lib/generates/SwaggerGenerator.js
++++ b/node_modules/@nestia/sdk/lib/generates/SwaggerGenerator.js
+@@ -23,8 +23,15 @@ const MetadataCollection_1 = require("typia/lib/factories/MetadataCollection");
+ const MetadataFactory_1 = require("typia/lib/factories/MetadataFactory");
+ const ApplicationProgrammer_1 = require("typia/lib/programmers/ApplicationProgrammer");
+ const MapUtil_1 = require("../utils/MapUtil");
++const YAML_1 = require('yamljs');
+ var SwaggerGenerator;
+ (function (SwaggerGenerator) {
++    function isYAML (config) {
++        const fileExt = config.output.split('.').pop()
++        const _isYAML = (fileExt === 'yaml') || config.yaml
++        return _isYAML
++    }
++
+     function generate(checker, config, routeList) {
+         var _a;
+         return __awaiter(this, void 0, void 0, function* () {
+@@ -32,13 +39,16 @@ var SwaggerGenerator;
+             const parsed = path_1.default.parse(config.output);
+             const location = !!parsed.ext
+                 ? path_1.default.resolve(config.output)
+-                : path_1.default.join(path_1.default.resolve(config.output), "swagger.json");
++                : path_1.default.join(
++                    path_1.default.resolve(config.output),
++                    "swagger." + isYAML(config) ? 'yaml' : 'json'
++                );
+             const collection = new MetadataCollection_1.MetadataCollection({
+                 replace: MetadataCollection_1.MetadataCollection.replace,
+             });
+             // CONSTRUCT SWAGGER DOCUMENTS
+             const tupleList = [];
+-            const swagger = yield initialize(location);
++            const swagger = yield initialize(location, isYAML(config));
+             const pathDict = new Map();
+             for (const route of routeList) {
+                 if (route.tags.find((tag) => tag.name === "internal"))
+@@ -66,18 +76,24 @@ var SwaggerGenerator;
+                 if (obj.$id)
+                     delete obj.$id;
+             // DO GENERATE
+-            yield fs_1.default.promises.writeFile(location, JSON.stringify(swagger, null, 2), "utf8");
++            const stringifyFunction = (swagger) => isYAML(config)
++                // null로 주게되면 인라인으로 출력되면서 파일을 확인하기 어려워 짐
++                ? YAML_1.stringify(swagger, 10, 2)
++                : JSON.stringify(swagger, null, 2);
++            yield fs_1.default.promises.writeFile(location, stringifyFunction(swagger), "utf8");
+         });
+     }
+     SwaggerGenerator.generate = generate;
+     /* ---------------------------------------------------------
+         INITIALIZERS
+     --------------------------------------------------------- */
+-    function initialize(path) {
++    function initialize(path, isYaml) {
+         return __awaiter(this, void 0, void 0, function* () {
+             // LOAD OR CREATE NEW SWAGGER DATA
+             const swagger = fs_1.default.existsSync(path)
+-                ? JSON.parse(yield fs_1.default.promises.readFile(path, "utf8"))
++                ? isYaml
++                    ? YAML_1.load(path)
++                    : JSON.parse(yield fs_1.default.promises.readFile(path, "utf8"))
+                 : {
+                     openapi: "3.0.1",
+                     servers: [

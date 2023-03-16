@@ -1,0 +1,1 @@
+export { MessageReplaceKoError } from './error'
